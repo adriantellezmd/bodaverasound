@@ -4977,7 +4977,14 @@ window.arrancaSegunda=function(){
   // (Tu plan en pequeño) sale solo con el formulario completo: es la sorpresa del final (antes salía también a medias).
   function pintarMini(){
     var el=$('#plan-mini'), e = confirmo(YO) ? (R.completo ? 'completo' : 'parcial') : (R.no[YO] ? 'no' : 'nuevo'), ent=$('#lo-que-preguntaremos');
-    if(e==='completo') pintarPlan(el); else el.innerHTML='';
+    if(e==='completo'){                                  // final v33: y debajo, «Añadir al calendario» (el mismo de Tu plan)
+      pintarPlan(el);
+      var bc=document.createElement('button'); bc.type='button'; bc.className='btn linea'; bc.id='b-calendario-mini'; bc.textContent='Añadir al calendario'; bc.style.marginTop='14px';
+      bc.addEventListener('click', function(){ $('#b-calendario').click(); var n=$('#nota-calendario'), m=$('#nota-calendario-mini'); if(m){ m.hidden=false; } });
+      var nm=document.createElement('p'); nm.className='calendario-nota'; nm.id='nota-calendario-mini'; nm.hidden=true; nm.style.marginTop='8px';
+      nm.textContent='Si no se abre tu calendario, busca «Bodavera-Sound.ics» en tus descargas y ábrelo.';
+      el.appendChild(bc); el.appendChild(nm);
+    } else el.innerHTML='';
     ent.hidden=false; $('#gc-cambiar').hidden=true;
     $('#b-confirmar-recinto').textContent={nuevo:'Confirmar asistencia', parcial:'Completar mis respuestas', completo:'Modificar mis respuestas', no:'Modificar mi respuesta'}[e];
     $('.gc-datos', ent).hidden = e==='completo' || e==='no';          // la fecha límite, mientras falte algo
