@@ -2512,7 +2512,7 @@ window.aplicarDatos=function(){                       // final v27: antes se pon
     if(B.estado==='ok') return;
     var a=e.target && e.target.closest && e.target.closest('a'); if(a) return;
     e.stopImmediatePropagation(); if(e.cancelable && e.type!=='keydown') e.preventDefault();
-    if(B.estado==='cargando' && !avisado && (e.type==='click' || e.type==='keydown')){ avisado=true; html.classList.add('inv-aviso'); pista('Un momento, preparando tu invitación…'); }
+    if(B.estado==='cargando' && !avisado && /^(click|keydown|touchstart|pointerdown)$/.test(e.type)){ avisado=true; html.classList.add('inv-aviso'); pista('Un momento, preparando tu invitación…'); }   // final v34: en el iPhone el toque no llega como «click»
   }
   ['click','pointerdown','pointerup','touchstart','touchmove','touchend','wheel','keydown'].forEach(function(t){ addEventListener(t, para, {capture:true, passive:false}); });
 
@@ -2588,41 +2588,59 @@ window.aplicarDatos=function(){                       // final v27: antes se pon
   };
 
   // ---- abrir: pedir la invitación a la hoja ----
-  var intentos=0;
+  // final v34: al volver a cargar en la misma pestaña (10 min), la invitación sale al momento de lo guardado y se refresca
+  // detrás; mientras carga de verdad, a los 1,2 s ya dice «Preparando tu invitación…»; y si la hoja tarda más de 12 s, se reintenta.
+  var intentos=0, CLAVE_C='bodavera-inv-'+B.id;
+  function aplica(d, deCache){
+    var nuevo=B.estado!=='ok', datos=d.datos||{}, rec=datos.recogida||{};
+    if(nuevo){
+      Object.keys(INVITACION).forEach(function(k){ delete INVITACION[k]; });
+      Object.keys(d.inv).forEach(function(k){ INVITACION[k]=d.inv[k]; });
+      DATOS.fechaLimite=datos.fechaLimite||''; DATOS.recogida={p1:rec.p1||'', p2:rec.p2||''};
+      aplicarDatos();
+    }
+    aplicarIban(datos.iban);
+    if(!B.enUso){                                       // la ficha del grupo, solo si aún no se está usando en la segunda parte
+      B.R=d.R||null; B.ver=d.ver||0; B.base=d.R ? JSON.stringify(d.R) : null;
+      var p=null; try { p=JSON.parse(localStorage.getItem(CLAVE_P)||'null'); } catch(e){}
+      if(!deCache && p && p.R){                         // algo que no llegó a guardarse la última vez: se junta y se sube
+        if(B.R && igual(p.R, B.R)) suelta();
+        else { B.R=fusiona(p.base ? JSON.parse(p.base) : {}, p.R, B.R||{}); B.Rvivo=B.R; }
+      }
+    }
+    B.visto=B.visto || !!d.visto;
+    if(nuevo){
+      html.classList.add('conectada'); html.classList.remove('inv-aviso');
+      if(avisado) pista('Enciende la llama');
+      listo();
+      var abierta=false, abre=function(){                 // final v29: la apertura cuenta al primer toque, no al cargar
+        if(abierta) return; abierta=true;
+        ['pointerdown','touchstart','keydown'].forEach(function(t){ removeEventListener(t, abre, true); });
+        try { fetch(HOJA, {method:'POST', body:JSON.stringify({accion:'abre', i:B.id}), keepalive:true}).catch(function(){}); } catch(e){}
+      };
+      ['pointerdown','touchstart','keydown'].forEach(function(t){ addEventListener(t, abre, true); });
+    }
+    if(!deCache && B.Rvivo) sube();
+  }
   function carga(){
-    fetch(HOJA+'?accion=inv&i='+encodeURIComponent(B.id), {cache:'no-store'})
-      .then(function(r){ return r.json(); })
+    var ctl=window.AbortController ? new AbortController() : null, tm=ctl ? setTimeout(function(){ ctl.abort(); }, 12000) : 0;
+    fetch(HOJA+'?accion=inv&i='+encodeURIComponent(B.id), ctl ? {cache:'no-store', signal:ctl.signal} : {cache:'no-store'})
+      .then(function(r){ clearTimeout(tm); return r.json(); })
       .then(function(d){
-        if(d && !d.ok && d.error==='id'){ suelta(); sinAcceso(); return; }
+        if(d && !d.ok && d.error==='id'){ try { sessionStorage.removeItem(CLAVE_C); } catch(e){} if(B.estado!=='ok'){ suelta(); sinAcceso(); } return; }
         if(!d || !d.ok || !d.inv) throw new Error((d && d.error) || 'respuesta');
-        Object.keys(INVITACION).forEach(function(k){ delete INVITACION[k]; });
-        Object.keys(d.inv).forEach(function(k){ INVITACION[k]=d.inv[k]; });
-        var datos=d.datos||{}, rec=datos.recogida||{};
-        DATOS.fechaLimite=datos.fechaLimite||''; DATOS.recogida={p1:rec.p1||'', p2:rec.p2||''};
-        B.R=d.R||null; B.ver=d.ver||0; B.visto=!!d.visto; B.base=d.R ? JSON.stringify(d.R) : null;
-        var p=null; try { p=JSON.parse(localStorage.getItem(CLAVE_P)||'null'); } catch(e){}
-        if(p && p.R){                                     // algo que no llegó a guardarse la última vez: se junta y se sube
-          if(B.R && igual(p.R, B.R)) suelta();
-          else { B.R=fusiona(p.base ? JSON.parse(p.base) : {}, p.R, B.R||{}); B.Rvivo=B.R; }
-        }
-        aplicarDatos(); aplicarIban(datos.iban);
-        html.classList.add('conectada'); html.classList.remove('inv-aviso');
-        if(avisado) pista('Enciende la llama');
-        listo();
-        if(B.Rvivo) sube();
-        var abierta=false, abre=function(){                 // final v29: la apertura cuenta al primer toque, no al cargar
-          if(abierta) return; abierta=true;
-          ['pointerdown','touchstart','keydown'].forEach(function(t){ removeEventListener(t, abre, true); });
-          try { fetch(HOJA, {method:'POST', body:JSON.stringify({accion:'abre', i:B.id}), keepalive:true}).catch(function(){}); } catch(e){}
-        };
-        ['pointerdown','touchstart','keydown'].forEach(function(t){ addEventListener(t, abre, true); });
+        try { sessionStorage.setItem(CLAVE_C, JSON.stringify({t:Date.now(), d:d})); } catch(e){}
+        aplica(d, false);
       })
       .catch(function(){
-        intentos++;
-        if(intentos===2){ avisado=true; html.classList.add('inv-aviso'); pista('No conseguimos abrir tu invitación. Revisa tu conexión: lo seguimos intentando…'); }
+        clearTimeout(tm); intentos++;
+        if(B.estado==='ok' && intentos>3) return;          // ya abierta (de lo guardado): no insiste más
+        if(intentos===2 && B.estado!=='ok'){ avisado=true; html.classList.add('inv-aviso'); pista('No conseguimos abrir tu invitación. Revisa tu conexión: lo seguimos intentando…'); }
         setTimeout(carga, Math.min(2000*intentos, 10000));
       });
   }
+  try { var c=JSON.parse(sessionStorage.getItem(CLAVE_C)||'null'); if(c && c.d && c.d.inv && Date.now()-c.t < 600000) aplica(c.d, true); } catch(e){}
+  setTimeout(function(){ if(B.estado==='cargando' && !avisado){ avisado=true; html.classList.add('inv-aviso'); pista('Preparando tu invitación…'); } }, 1200);
   carga();
 })();
 </script>
@@ -4639,6 +4657,7 @@ window.arrancaSegunda=function(){
   }
   if(window.BODAVERA && BODAVERA.R){ GRUPO=INVITACION.grupo; ESTADOS[GRUPO.join(',')]=Object.assign(nuevoR(), BODAVERA.R); }   // final v27: lo ya respondido (de la hoja)
   abrirComo(INVITACION.yo);
+  if(window.BODAVERA) BODAVERA.enUso=true;   // final v34: desde aquí, la ficha no se cambia por detrás
   if(window.BODAVERA && !BODAVERA.base) BODAVERA.base=JSON.stringify(R);   // final v27: la ficha tal como se abrió, para juntar cambios
   function subir(){ if(window.guardarEnHoja) guardarEnHoja(R); }          // final v27: guardar en la hoja
   window.__miPlan=function(){ return {duerme:R.duerme, ida:R.ida}; };      // final v31: para el mapa «según tu plan»
