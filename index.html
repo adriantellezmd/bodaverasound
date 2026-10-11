@@ -2375,7 +2375,7 @@ a.ll-lugar:hover{border-bottom-color:var(--terra)}
     </section>
     <button class="btn linea" type="button" data-ir="form" id="b-cambiar" data-t="Modificar mis respuestas|Modificar nuestras respuestas">Modificar nuestras respuestas</button>
     <button class="btn linea" type="button" id="b-calendario">Añadir al calendario</button>
-    <p class="calendario-nota" id="nota-calendario" hidden>En la invitación de verdad, este botón guarda la boda en tu calendario, con la hora de tu autobús.</p>
+    <p class="calendario-nota" id="nota-calendario" hidden>Si no se abre tu calendario, busca «Bodavera-Sound.ics» en tus descargas y ábrelo.</p>
     <button class="btn linea" type="button" data-ir="recinto">Volver a la guía</button>
   </section>
   <!-- La ventana emergente de Llegada a Figueres: una hoja que sube desde abajo (v17) -->
@@ -4641,6 +4641,7 @@ window.arrancaSegunda=function(){
   abrirComo(INVITACION.yo);
   if(window.BODAVERA && !BODAVERA.base) BODAVERA.base=JSON.stringify(R);   // final v27: la ficha tal como se abrió, para juntar cambios
   function subir(){ if(window.guardarEnHoja) guardarEnHoja(R); }          // final v27: guardar en la hoja
+  window.__miPlan=function(){ return {duerme:R.duerme, ida:R.ida}; };      // final v31: para el mapa «según tu plan»
   function lista(l){ return l.length<2 ? l.join('') : l.slice(0,-1).join(', ')+' y '+l[l.length-1]; }
   function avisoOtro(){                                // lo que ya respondió otra persona del grupo
     var p=R.por; if(!p || p===YO) return '';
@@ -4969,7 +4970,7 @@ window.arrancaSegunda=function(){
       '<div><dt>'+(plural() ? 'Se alojan en' : 'Te alojas en')+'</dt><dd>'+etiq('duerme', R.duerme)+'</dd></div>'+
       '<div><dt>La Previa</dt><dd>'+encTexto('previa')+'</dd></div>'+
       '<div><dt>El After</dt><dd>'+encTexto('after')+'</dd></div></dl>'+
-      '<div class="talon"><canvas aria-label="Código de ejemplo" role="img"></canvas><p class="all">All Access Pass</p></div></article>';
+      '<div class="talon"><canvas aria-label="Código de tu entrada" role="img"></canvas><p class="all">All Access Pass</p></div></article>';
     qr(el.querySelector('canvas'), GRUPO.join('')+(ida||''));          // el mismo código desde cualquier enlace del grupo
   }
   // final v16: la entrada «Lo que te preguntaremos al confirmar» se queda siempre; solo cambia su botón. El pase de arriba
@@ -5105,7 +5106,39 @@ window.arrancaSegunda=function(){
       .catch(function(e){ msg.textContent = e && e.code==='declined' ? '' : 'No se ha podido descargar. Prueba otra vez en un momento.'; })
       .then(function(){ b.disabled=false; });
   });
-  $('#b-calendario').addEventListener('click', function(){ $('#nota-calendario').hidden=false; });
+  $('#b-calendario').addEventListener('click', function(){            // final v31: la boda (y La Previa y El After, si viene) en el calendario del móvil
+    function txt(h){ var d=document.createElement('div'); d.innerHTML=String(h).replace(/<br\s*\/?>/g,'; '); return d.textContent.replace(/\s+/g,' ').trim(); }
+    function ic(s){ return String(s).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n'); }
+    function utc(dia, hm){ var p=hm.split(':'); return new Date(Date.UTC(2027, 2, dia, +p[0]-1, +p[1])).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,''); }   // marzo de 2027: hora de invierno (UTC+1)
+    function pliega(l){ var o=[]; while(l.length>73){ o.push(l.slice(0,73)); l=' '+l.slice(73); } o.push(l); return o.join('\r\n'); }
+    var ida=R.ida, rec=(ida==='p1'||ida==='p2') ? recogidaDe(ida) : '';
+    var reg=regresoDe(YO), vu=(R.vueltaP||{})[YO]||R.vuelta;
+    var fin=(reg==='bus' && vu==='1') ? [21,'01:00'] : [21,'04:00'];
+    var enlace=location.origin+location.pathname+location.search;
+    var desc=['15:00 · Ceremonia · Iglesia de Sant Miquel de Fluvià', '17:00 · Celebración · El Molí de la Torre', '',
+      'Ida: '+txt(idaTexto())+(rec ? ' · recogida a las '+rec : ''), 'Vuelta: '+txt(vueltaPase()),
+      (plural() ? 'Se alojan en: ' : 'Te alojas en: ')+txt(etiq('duerme', R.duerme)), '', 'Tu invitación: '+enlace].join('\n');
+    var ev=[{uid:'boda', ini:[20, rec||'15:00'], fin:fin, t:'Boda de Roxana y Adrián · Bodavera Sound', lugar:'Iglesia de Sant Miquel de Fluvià', d:desc}];
+    function va(k){ var v=R[k]; return v==='si' || (Array.isArray(v) && v.indexOf(YO)>=0); }
+    if(va('previa')) ev.push({uid:'previa', ini:[19,'19:30'], fin:[19,'23:30'], t:'La Previa · Bodavera Sound', lugar:'El Taronger, Ordis', d:'Un encuentro informal para romper el hielo.\n\nTu invitación: '+enlace});
+    if(va('after')) ev.push({uid:'after', ini:[21,'12:30'], fin:[21,'17:00'], t:'El After · Bodavera Sound', lugar:'El Taronger, Ordis', d:'Un vermut para recordar lo vivido y despedirnos sin prisas.\n\nTu invitación: '+enlace});
+    var id=(window.INVITACION && INVITACION.id) || 'invitacion', ahora=new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
+    var L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Bodavera Sound//ES','CALSCALE:GREGORIAN','METHOD:PUBLISH'];
+    ev.forEach(function(e){
+      L.push('BEGIN:VEVENT','UID:'+e.uid+'-'+id+'@bodaverasound.com','DTSTAMP:'+ahora,'DTSTART:'+utc(e.ini[0],e.ini[1]),'DTEND:'+utc(e.fin[0],e.fin[1]),
+        'SUMMARY:'+ic(e.t),'LOCATION:'+ic(e.lugar),'DESCRIPTION:'+ic(e.d),'URL:'+enlace,
+        'BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+ic(e.t),'TRIGGER:-P1D','END:VALARM','END:VEVENT');
+    });
+    L.push('END:VCALENDAR');
+    var ics=L.map(pliega).join('\r\n'); window.__ics=ics;
+    var ios=/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+    if(ios) location.href='data:text/calendar;charset=utf-8,'+encodeURIComponent(ics);
+    else {
+      var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([ics], {type:'text/calendar;charset=utf-8'})); a.download='Bodavera-Sound.ics';
+      document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+    }
+    $('#nota-calendario').hidden=false;
+  });
   $('#b-cambiar').addEventListener('click', function(){ /* vuelve al principio del formulario con lo ya contestado */ });
 
   // enlace directo a una vista con #recinto, #form…
@@ -5566,11 +5599,24 @@ window.arrancaSegunda=function(){
     });
   }
 
-  // ---------- tu plan (en la prueba, de ejemplo) ----------
-  var plan=false, TAGS=[];
+  // ---------- tu plan (final v31: el de verdad, de las respuestas; en claude.ai y en el Mac, el de ejemplo) ----------
+  var plan=false, TAGS=[], tuyos=[], REAL=!!(window.BODAVERA && BODAVERA.modo!=='demo');
+  var TXT_PLAN='Marca tu hotel, tu parada y tu recorrido de ida, según lo que hayas respondido.';
+  function ponPlan(){
+    if(REAL){
+      var p=window.__miPlan ? __miPlan() : {}, nota=document.querySelector('.mg-plan .nota');
+      var h=(p.duerme && porId[p.duerme] && porId[p.duerme].p.capa==='hoteles') ? p.duerme : null, s=(p.ida==='p1'||p.ida==='p2') ? p.ida : null;
+      D.plan={hotel:h, parada:s, ruta:s ? (s==='p1' ? 'ida1' : 'ida2') : null};
+      if(!h && !s){ if(nota) nota.textContent='Cuando nos digas dónde te alojas y desde qué parada sales, aquí verás tu hotel, tu parada y tu recorrido de ida.'; return false; }
+      if(nota) nota.textContent=TXT_PLAN;
+    }
+    TAGS[0].id=D.plan.hotel; TAGS[1].id=D.plan.parada;
+    return true;
+  }
+  if(REAL){ var notaP=document.querySelector('.mg-plan .nota'); if(notaP) notaP.textContent=TXT_PLAN; }
   function pintarPlan(puestas){
     var hechas=[];
-    TAGS.forEach(function(t){ var o=porId[t.id]; t.el.hidden = !plan || o.el.hidden; if(t.el.hidden) return;
+    TAGS.forEach(function(t){ var o=t.id && porId[t.id]; t.el.hidden = !plan || !o || o.el.hidden; if(t.el.hidden) return;
       var w=t.el.offsetWidth, h=t.el.offsetHeight, d=o.p.capa==='bus' ? o.R+4 : 12, b=caja(o.x-w/2, o.y-d-h, w, h);
       if(o.dentro) b=caja(o.dentro.x-w/2, o.dentro.y+o.dentro.R+4, w, h);                     // el hotel dentro del aro: debajo del aro
       else if(hechas.some(function(c){ return choca(b,c); })) b=caja(o.x-w/2, o.y+d, w, h);   // debajo, si la otra ya está arriba
@@ -5582,8 +5628,11 @@ window.arrancaSegunda=function(){
     TAGS.push({id:D.plan[a[0]], el:e});
   });
   $('#mg-plan').addEventListener('click', function(){
+    if(!plan && !ponPlan()) return;                    // final v31: sin hotel ni parada respondidos, solo lo explica
     plan=!plan; this.setAttribute('aria-pressed', String(plan)); document.body.classList.toggle('mg-plan-on', plan);
-    [D.plan.hotel, D.plan.parada].forEach(function(id){ porId[id].el.classList.toggle('tuyo', plan); });
+    tuyos.forEach(function(id){ if(porId[id]) porId[id].el.classList.remove('tuyo'); });
+    tuyos = plan ? [D.plan.hotel, D.plan.parada].filter(function(id){ return id && porId[id]; }) : [];
+    tuyos.forEach(function(id){ porId[id].el.classList.add('tuyo'); });
     $$('.mg-ruta-b').forEach(function(b){ b.classList.toggle('es-tuya', b.getAttribute('data-ruta')===D.plan.ruta); });
     pintarRutas(); pedir();
   });
