@@ -2610,6 +2610,12 @@ window.aplicarDatos=function(){                       // final v27: antes se pon
         if(avisado) pista('Enciende la llama');
         listo();
         if(B.Rvivo) sube();
+        var abierta=false, abre=function(){                 // final v29: la apertura cuenta al primer toque, no al cargar
+          if(abierta) return; abierta=true;
+          ['pointerdown','touchstart','keydown'].forEach(function(t){ removeEventListener(t, abre, true); });
+          try { fetch(HOJA, {method:'POST', body:JSON.stringify({accion:'abre', i:B.id}), keepalive:true}).catch(function(){}); } catch(e){}
+        };
+        ['pointerdown','touchstart','keydown'].forEach(function(t){ addEventListener(t, abre, true); });
       })
       .catch(function(){
         intentos++;
