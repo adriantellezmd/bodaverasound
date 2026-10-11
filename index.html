@@ -1,23 +1,5 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <meta name="robots" content="noindex, nofollow">
-<script>/* publicar v1 (chat técnico): acceso con el enlace personal ?i=… — sin identificador válido, solo la portada con el aviso */
-(function(){
-  var IDS=["wy27cgenk9"], i=''; try{ i=new URLSearchParams(location.search).get('i')||''; }catch(e){}
-  window.ACCESO = IDS.indexOf(i)>=0;
-  if(window.ACCESO) return;
-  if(location.hash) history.replaceState(null,'',location.pathname+location.search);   // sin atajos (#fiesta, #form…)
-  document.title='Bodavera Sound';
-  var para=function(e){ var b=e.target&&e.target.closest&&e.target.closest('a'); if(b) return; e.stopImmediatePropagation(); if(e.cancelable && e.type!=='keydown') e.preventDefault(); };
-  ['click','pointerdown','pointerup','touchstart','touchmove','touchend','wheel','keydown'].forEach(function(t){ addEventListener(t, para, {capture:true, passive:false}); });
-  var css=document.createElement('style');
-  css.textContent='#musica,#directo,#sigue{display:none!important}#pista #pista-texto{max-width:15em;line-height:1.7;white-space:normal}#pista svg{display:none}#tocar-llama::after{display:none!important}';
-  document.head.appendChild(css);
-  document.addEventListener('DOMContentLoaded', function(){
-    var t=document.getElementById('pista-texto'); if(t) t.textContent='Esta invitación es personal. Ábrela desde el enlace que te enviamos.';
-    var l=document.getElementById('tocar-llama'); if(l){ l.disabled=true; l.setAttribute('aria-label','Invitación personal'); }
-  });
-})();
-</script>
 <title>Bodavera Sound · Pili</title>
 <meta name="format-detection" content="telephone=no"><!-- final v15: que el iPhone no tome cifras por teléfonos (los de verdad ya son enlaces) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2149,8 +2131,8 @@ a.ll-lugar:hover{border-bottom-color:var(--terra)}
         <p class="ante">Titular</p>
         <p class="rg-titular">Usa el nombre completo de cualquiera de los novios.</p>
         <p class="ante">Número de cuenta (IBAN)</p>
-        <p class="rg-iban" id="rg-iban"><span>ES81</span><span>0182</span><span>9003</span><span>9802</span><span>0011</span><span>9403</span></p>
-        <button class="rg-copiar" type="button" data-copiar-cuenta="ES8101829003980200119403">Copiar</button>
+        <p class="rg-iban" id="rg-iban"><span class="pendiente">Se muestra al abrir tu enlace</span></p>
+        <button class="rg-copiar" type="button" data-copiar-cuenta="" hidden>Copiar</button>
       </div>
     </div>
   </section>
@@ -2456,7 +2438,20 @@ a.ll-lugar:hover{border-bottom-color:var(--terra)}
 <script>
 /* La invitación de este enlace: quién abre, su grupo (pareja o familia), los nombres que escriben los láseres (quien abre,
    primero), el título (¿Preparado?, ¿Preparada?, ¿Preparados?, ¿Preparadas?) y el trato (tu o ustedes) */
-window.INVITACION={id:'pili', yo:'Pili', grupo:['Pili'], nombres:'Pili', titulo:'¿Preparada?', trato:'tu', sinEnlace:[]};   // final v22: sinEnlace, quienes del grupo no tienen enlace propio
+/* final v27 · LA INVITACIÓN DE ESTE ENLACE, DESDE LA HOJA. Con ?i=… en la dirección, los nombres, el título, el trato, las
+   respuestas del grupo, si ya vio la primera parte, los datos por confirmar y el número de cuenta llegan de la hoja de Google
+   (Invitados · Bodavera Sound, su programa de Apps Script). Sin ?i=: en bodaverasound.com, solo la portada con el aviso de
+   invitación personal; en cualquier otro sitio (claude.ai, el Mac), la invitación de ejemplo de Pili, como hasta la v26. */
+(function(){
+  var id=''; try { id=(new URLSearchParams(location.search).get('i')||'').trim(); } catch(e){}
+  var publicado=/(^|\.)bodaverasound\.com$|\.github\.io$/.test(location.hostname);
+  var modo=id ? 'hoja' : (publicado ? 'sin' : 'demo');
+  window.BODAVERA={id:id, modo:modo, estado:(modo==='demo' ? 'ok' : (modo==='sin' ? 'sin' : 'cargando')), R:null, ver:0, visto:false, base:null};
+  window.INVITACION = modo==='demo'
+    ? {id:'pili', yo:'Pili', grupo:['Pili'], nombres:'Pili', titulo:'¿Preparada?', trato:'tu', sinEnlace:[]}
+    : {id:id||'-', yo:'', grupo:[], nombres:'', titulo:'¿Preparados?', trato:'ustedes', sinEnlace:[]};
+  if(publicado && location.hash) history.replaceState(null, '', location.pathname+location.search);   // en la web, sin atajos (#fiesta, #form…)
+})();
 /* final v26 · LOS DATOS POR CONFIRMAR, EN UN SOLO SITIO. Se escriben aquí una vez y la página los pone en todos los sitios
    donde salen: la fecha límite, en la Guía, Preguntas y el formulario; la recogida, en Transporte, Tu plan, las entradas y
    el mapa. Mientras uno esté vacío (''), se ve la etiqueta de siempre: «fecha por decidir» u «Hora por confirmar». */
@@ -2464,7 +2459,8 @@ window.DATOS={
   fechaLimite: '',               // hasta cuándo se puede confirmar y cambiar las respuestas; p. ej. '20 de enero de 2027'
   recogida: {p1:'', p2:''}       // la hora de recogida de los autobuses; p1, Parada 1 (Hotel Bon Retorn); p2, Parada 2 (Jardins d'Enric Morera); p. ej. '14:15'
 };
-(function(){
+window.aplicarDatos=function(){                       // final v27: antes se ponían al cargar; ahora, cuando llegan de la hoja
+  if(window.aplicarDatos.hecho) return; window.aplicarDatos.hecho=true;
   function limpio(s){ return String(s||'').trim(); }
   function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   var PEND_H='<span class="pendiente">Hora por confirmar</span>';
@@ -2482,6 +2478,146 @@ window.DATOS={
     else { hora.textContent=[h1,h2].filter(Boolean).sort()[0];
       det.innerHTML='Parada 1, '+(h1?esc(h1):PEND_H)+' · Parada 2, '+(h2?esc(h2):PEND_H)+'. Llega 5–10 minutos antes.'; }
   }
+};
+/* final v27 · LA CONEXIÓN CON LA HOJA. Mientras llega la invitación (unos segundos), la portada no responde; si se toca, avisa
+   «Un momento…». Guardar respuestas: la ficha del grupo entera, con su versión; si otro del grupo guardó entretanto, se juntan
+   (lo que cambió cada uno) y se vuelve a guardar. Sin conexión, se reintenta solo y queda apuntado en el aparato. */
+(function(){
+  var HOJA='https://script.google.com/macros/s/AKfycbx8I62snk11r7CjCQyWthKf_kzXPxF_FfPlDYvdQFWHGR09HhQH4zZtHzWrNuXvexpd/exec';
+  var B=window.BODAVERA, listos=[], html=document.documentElement;
+  function corre(f){ try { f(); } catch(e){ setTimeout(function(){ throw e; }); } }
+  window.alListo=function(f){ if(B.estado==='ok') corre(f); else listos.push(f); };
+  function listo(){ B.estado='ok'; var l=listos; listos=[]; l.forEach(corre); }
+  var css=document.createElement('style');
+  css.textContent='.rg-copiar[hidden]{display:none!important}html.conectada .aviso-prueba{display:none!important}'+
+    'html.inv-sin #musica,html.inv-sin #directo,html.inv-sin #sigue{display:none!important}html.inv-sin #pista svg{display:none}html.inv-sin #tocar-llama::after{display:none!important}'+
+    'html.inv-aviso #pista #pista-texto{max-width:15em;line-height:1.7;white-space:normal}';
+  document.head.appendChild(css);
+
+  // el número de cuenta: ya no está escrito en la página; llega de la hoja solo con un enlace válido
+  window.aplicarIban=function(iban){
+    iban=String(iban||'').replace(/\s+/g,'').toUpperCase(); if(!iban) return;
+    var tpl=document.getElementById('t-segunda'), sitios=[document]; if(tpl && tpl.content) sitios.push(tpl.content);
+    sitios.forEach(function(r){
+      var p=r.querySelector('#rg-iban'), b=r.querySelector('[data-copiar-cuenta]'); if(!p) return;
+      p.innerHTML=iban.match(/.{1,4}/g).map(function(g){ return '<span>'+g+'</span>'; }).join('');
+      if(b){ b.setAttribute('data-copiar-cuenta', iban); b.hidden=false; }
+    });
+  };
+  if(B.modo==='demo'){ alListo(aplicarDatos); return; }
+
+  function pista(t){ var p=document.getElementById('pista-texto'); if(p) p.textContent=t; }
+  var avisado=false;
+  function para(e){
+    if(B.estado==='ok') return;
+    var a=e.target && e.target.closest && e.target.closest('a'); if(a) return;
+    e.stopImmediatePropagation(); if(e.cancelable && e.type!=='keydown') e.preventDefault();
+    if(B.estado==='cargando' && !avisado && (e.type==='click' || e.type==='keydown')){ avisado=true; html.classList.add('inv-aviso'); pista('Un momento, preparando tu invitación…'); }
+  }
+  ['click','pointerdown','pointerup','touchstart','touchmove','touchend','wheel','keydown'].forEach(function(t){ addEventListener(t, para, {capture:true, passive:false}); });
+
+  function sinAcceso(){
+    B.estado='sin'; document.title='Bodavera Sound'; html.classList.add('inv-sin','inv-aviso');
+    var pon=function(){
+      pista('Esta invitación es personal. Ábrela desde el enlace que te enviamos.');
+      var l=document.getElementById('tocar-llama'); if(l){ l.disabled=true; l.setAttribute('aria-label','Invitación personal'); }
+    };
+    pon(); if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', pon);
+  }
+  if(B.modo==='sin'){ sinAcceso(); return; }
+
+  // ---- juntar dos versiones de la ficha: la de la hoja + lo que cambió aquí desde la última que se leyó ----
+  function copia(x){ return x===undefined ? undefined : JSON.parse(JSON.stringify(x)); }
+  function obj(x){ return !!x && typeof x==='object' && !Array.isArray(x); }
+  function igual(a,b){ return JSON.stringify(a)===JSON.stringify(b); }
+  function fusiona(base, mio, suyo){
+    var out=copia(suyo)||{}, ks={}; base=base||{}; mio=mio||{};
+    Object.keys(mio).concat(Object.keys(base)).forEach(function(k){ ks[k]=1; });
+    Object.keys(ks).forEach(function(k){
+      var b=base[k], m=mio[k];
+      if(igual(b,m)) return;
+      if(obj(m) && obj(b) && obj(out[k])){
+        var s={}; Object.keys(m).concat(Object.keys(b)).forEach(function(x){ s[x]=1; });
+        Object.keys(s).forEach(function(x){ if(igual(b[x],m[x])) return; if(x in m) out[k][x]=copia(m[x]); else delete out[k][x]; });
+      } else if(!(k in mio)) delete out[k];
+      else out[k]=copia(m);
+    });
+    return out;
+  }
+  window.__fusiona=fusiona;
+
+  // ---- guardar ----
+  var CLAVE_P='bodavera-pend-'+B.id, subiendo=false, otraVez=false, espera=0, choques=0;
+  function apunta(){ try { localStorage.setItem(CLAVE_P, JSON.stringify({R:B.Rvivo, base:B.base, ver:B.ver})); } catch(e){} }
+  function suelta(){ try { localStorage.removeItem(CLAVE_P); } catch(e){} }
+  window.guardarEnHoja=function(R){
+    if(B.estado!=='ok' || !R) return;
+    B.Rvivo=R; apunta(); sube();
+  };
+  function sube(){
+    var R=B.Rvivo; if(!R) return;
+    if(subiendo){ otraVez=true; return; }
+    subiendo=true;
+    var enviado=JSON.stringify(R);
+    fetch(HOJA, {method:'POST', body:JSON.stringify({accion:'guardar', i:B.id, R:JSON.parse(enviado), ver:B.ver})})
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        subiendo=false;
+        if(d && d.ok){
+          B.ver=d.ver; B.base=enviado; espera=0; choques=0;
+          if(JSON.stringify(R)===enviado && !otraVez) suelta(); else apunta();
+          if(otraVez){ otraVez=false; sube(); }
+          return;
+        }
+        if(d && d.conflicto && choques<6){
+          choques++;
+          var m=fusiona(B.base ? JSON.parse(B.base) : {}, JSON.parse(JSON.stringify(R)), d.R||{});
+          Object.keys(R).forEach(function(k){ delete R[k]; }); Object.keys(m).forEach(function(k){ R[k]=m[k]; });
+          B.base=JSON.stringify(d.R||{}); B.ver=d.ver||0; apunta(); sube();
+          return;
+        }
+        throw new Error((d && d.error) || 'guardar');
+      })
+      .catch(function(){ subiendo=false; espera=Math.min(espera ? espera*2 : 2000, 30000); setTimeout(sube, espera); });
+  }
+  addEventListener('online', function(){ if(B.Rvivo && !subiendo) sube(); });
+
+  window.marcarVisto=function(){
+    if(B.estado!=='ok' || B.visto) return; B.visto=true;
+    try { fetch(HOJA, {method:'POST', body:JSON.stringify({accion:'visto', i:B.id}), keepalive:true}).catch(function(){}); } catch(e){}
+  };
+
+  // ---- abrir: pedir la invitación a la hoja ----
+  var intentos=0;
+  function carga(){
+    fetch(HOJA+'?accion=inv&i='+encodeURIComponent(B.id), {cache:'no-store'})
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if(d && !d.ok && d.error==='id'){ suelta(); sinAcceso(); return; }
+        if(!d || !d.ok || !d.inv) throw new Error((d && d.error) || 'respuesta');
+        Object.keys(INVITACION).forEach(function(k){ delete INVITACION[k]; });
+        Object.keys(d.inv).forEach(function(k){ INVITACION[k]=d.inv[k]; });
+        var datos=d.datos||{}, rec=datos.recogida||{};
+        DATOS.fechaLimite=datos.fechaLimite||''; DATOS.recogida={p1:rec.p1||'', p2:rec.p2||''};
+        B.R=d.R||null; B.ver=d.ver||0; B.visto=!!d.visto; B.base=d.R ? JSON.stringify(d.R) : null;
+        var p=null; try { p=JSON.parse(localStorage.getItem(CLAVE_P)||'null'); } catch(e){}
+        if(p && p.R){                                     // algo que no llegó a guardarse la última vez: se junta y se sube
+          if(B.R && igual(p.R, B.R)) suelta();
+          else { B.R=fusiona(p.base ? JSON.parse(p.base) : {}, p.R, B.R||{}); B.Rvivo=B.R; }
+        }
+        aplicarDatos(); aplicarIban(datos.iban);
+        html.classList.add('conectada'); html.classList.remove('inv-aviso');
+        if(avisado) pista('Enciende la llama');
+        listo();
+        if(B.Rvivo) sube();
+      })
+      .catch(function(){
+        intentos++;
+        if(intentos===2){ avisado=true; html.classList.add('inv-aviso'); pista('No conseguimos abrir tu invitación. Revisa tu conexión: lo seguimos intentando…'); }
+        setTimeout(carga, Math.min(2000*intentos, 10000));
+      });
+  }
+  carga();
 })();
 </script>
 
@@ -3423,6 +3559,10 @@ window.mapaOrigen=(function(){
   var mc=document.createElement('canvas'), mx=mc.getContext('2d', {willReadFrequently:true});
   var tr={t0:null, desde:0, we:1e5, fin:1e5, tinta:false, lineas:[], s:58, dy:0, p0:null, hecho:false, auto:false, espera:null};
   if(document.fonts && document.fonts.load) Object.keys(INVS).forEach(function(k){ document.fonts.load(LETRA_N.base+'px '+LETRA_N.fam, INVS[k].n).catch(function(){}); });
+  alListo(function(){                                  // final v27: los nombres, el título y el trato, de la hoja
+    INVS[invAct]={n:INVITACION.nombres, t:INVITACION.titulo, x:INVITACION.trato==='ustedes' ? USTEDES : TU};
+    if(document.fonts && document.fonts.load && INVITACION.nombres) document.fonts.load(LETRA_N.base+'px '+LETRA_N.fam, INVITACION.nombres).catch(function(){});
+  });
   function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
   function trA(now){ return RM ? 1e6 : (now-tr.t0)/1000; }
   function fuenteLista(txt){ return !document.fonts || !document.fonts.check || document.fonts.check(LETRA_N.base+'px '+LETRA_N.fam, txt); }
@@ -3624,6 +3764,7 @@ window.mapaOrigen=(function(){
     if(desdeHistoria!==true) hPon(1, 'fondo', false, true);       // final v12: «¿Preparada?», una entrada del historial
     if(window.musicaFin) window.musicaFin();      // la música: fundido de salida y se para
     try { localStorage.setItem('bodavera-visto-'+INVITACION.id, '1'); } catch(e){}
+    if(window.marcarVisto) marcarVisto();         // final v27: y en la hoja, para que valga desde cualquier aparato
     var prim=document.getElementById('primera'), dir=document.getElementById('directo'), tpl=document.getElementById('t-segunda');
     document.getElementById('estilo-primera').media='not all';
     document.getElementById('estilo-segunda').media='all';
@@ -3746,6 +3887,11 @@ window.mapaOrigen=(function(){
   var directo=$('#directo'), yaVisto=false;
   try { yaVisto = localStorage.getItem('bodavera-visto-'+INVITACION.id)==='1'; } catch(e){}
   if(directo){ directo.hidden=!yaVisto; directo.addEventListener('click', function(){ pasarASegunda(); }); }
+  alListo(function(){                                  // final v27: vista desde otro aparato (la hoja lo sabe)
+    if(!window.BODAVERA || !BODAVERA.visto || yaVisto) return;
+    yaVisto=true; try { localStorage.setItem('bodavera-visto-'+INVITACION.id, '1'); } catch(e){}
+    if(directo && !FUERA) directo.hidden=false;
+  });
   var tNombres=null;
   addEventListener('resize', function(){ clearTimeout(tNombres); tNombres=setTimeout(function(){ if(!FUERA && tr.t0!==null && tr.tinta) trNombres(); }, 220); });
 
@@ -4483,7 +4629,10 @@ window.arrancaSegunda=function(){
     var k=GRUPO.join(','); R=ESTADOS[k] || (ESTADOS[k]=nuevoR());
     $$('[data-yo]').forEach(function(x){ x.setAttribute('aria-pressed', String(x.getAttribute('data-yo')===yo)); });
   }
+  if(window.BODAVERA && BODAVERA.R){ GRUPO=INVITACION.grupo; ESTADOS[GRUPO.join(',')]=Object.assign(nuevoR(), BODAVERA.R); }   // final v27: lo ya respondido (de la hoja)
   abrirComo(INVITACION.yo);
+  if(window.BODAVERA && !BODAVERA.base) BODAVERA.base=JSON.stringify(R);   // final v27: la ficha tal como se abrió, para juntar cambios
+  function subir(){ if(window.guardarEnHoja) guardarEnHoja(R); }          // final v27: guardar en la hoja
   function lista(l){ return l.length<2 ? l.join('') : l.slice(0,-1).join(', ')+' y '+l[l.length-1]; }
   function avisoOtro(){                                // lo que ya respondió otra persona del grupo
     var p=R.por; if(!p || p===YO) return '';
@@ -4738,9 +4887,11 @@ window.arrancaSegunda=function(){
       if(porPareja()) SIN.forEach(function(n){ if(GRUPO.indexOf(n)>=0){ R.personas[n]=false; R.no[n]=true; delete R.quien[n]; } });   // final v22: el «No» vale por los dos
       GRUPO.forEach(function(n){ if(R.quien[n]===YO) delete R.quien[n]; });   // v41: lo que confirmó por otros queda pendiente: cada uno lo confirma desde su enlace
       R.confirmado=GRUPO.some(confirmo); if(!R.confirmado){ R.parcial=false; R.completo=false; }
+      subir();
       if(window.__hist) window.__hist.finForm(); $('#formulario').hidden=true; $('#fin-no').hidden=false; $('#t-fin-no').focus(); return;
     }
     marcarConfirmados(); R.parcial=false; R.completo=true;
+    subir();
     verPlan();
   });
   // v5: «Guardar y volver a la guía». Lo respondido queda guardado; lo que falte, «por decidir». También con «Volver a la guía» de arriba.
@@ -4751,6 +4902,7 @@ window.arrancaSegunda=function(){
     if(GRUPO.length>1 && !(R.vioQuienes && R.vioQuienes[YO])){ R.quien[YO]=YO; delete R.no[YO]; R.confirmado=true; }
     else marcarConfirmados();
     R.por=YO; R.parcial=!R.completo;
+    subir();
     return true;
   }
   $('#b-guardar').addEventListener('click', function(){ if(guardarParcial()){ volverForm=false; ir('recinto'); } });
