@@ -3575,7 +3575,9 @@ window.mapaOrigen=(function(){
     if(w1<=ancho) return {s:b, l:[txt]};
     if(w1*.78<=ancho) return {s:Math.floor(b*ancho/w1), l:[txt]};
     var p=txt.split(' '), mejor=null;
-    for(var i=1;i<p.length;i++){ var A=p.slice(0,i).join(' '), B=p.slice(i).join(' '), m=Math.max(w(A), w(B)); if(!mejor || m<mejor.m) mejor={m:m, l:[A,B]}; }
+    function prueba(vale){ for(var i=1;i<p.length;i++){ if(!vale(i)) continue; var A=p.slice(0,i).join(' '), B=p.slice(i).join(' '), m=Math.max(w(A), w(B)); if(!mejor || m<mejor.m) mejor={m:m, l:[A,B]}; } }
+    prueba(function(i){ return /^(y|e)$/.test(p[i-1]) || /,$/.test(p[i-1]); });   // final v28: entre personas, nunca dentro de un nombre
+    if(!mejor) prueba(function(){ return true; });
     if(!mejor) return {s:Math.floor(b*ancho/w1), l:[txt]};
     return {s:Math.min(b, Math.floor(b*ancho/mejor.m)), l:mejor.l};
   }
